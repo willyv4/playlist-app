@@ -1,7 +1,8 @@
-from turtle import st
-from unicodedata import name
-from app import app, db
+from app import db
 from models import Playlist, Song, PlaylistSong
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
+
 
 # Create all tables
 db.drop_all()

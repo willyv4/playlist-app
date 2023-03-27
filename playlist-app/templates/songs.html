@@ -1,16 +1,21 @@
-{% extends 'base.html' %}
-
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 
 <h1>Check out the songs!</h1>
 
+{% with messages = get_flashed_messages() %} {% if messages %}
+<div class="alert alert-success">
+  {% for message in messages %}
+  <p>{{ message }}</p>
+  {% endfor %}
+</div>
+{% endif %} {% endwith %}
+
 <ul>
-{% for song in songs %}
+  {% for song in songs %}
   <li><a href="/songs/{{song.id}}">{{ song.title }}</a></li>
-{% endfor %}
+  {% endfor %}
 </ul>
 
 <p><a class="btn btn-primary" href="/songs/add">Add a song</a></p>
-
 
 {% endblock %}

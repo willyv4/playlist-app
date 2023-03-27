@@ -1,9 +1,11 @@
-from flask import Flask, redirect, render_template
+from curses import flash
+from turtle import title
+from flask import Flask, redirect, render_template, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from config import secret_key
-
+from forms import SongForm, PlaylistForm, NewSongForPlaylistForm
 from models import db, connect_db, Playlist, Song, PlaylistSong
-from forms import NewSongForPlaylistForm, SongForm, PlaylistForm
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///playlist-app'
@@ -22,7 +24,6 @@ debug = DebugToolbarExtension(app)
 @app.route("/")
 def root():
     """Homepage: redirect to /playlists."""
-
     return redirect("/playlists")
 
 
@@ -41,17 +42,14 @@ def show_all_playlists():
 @app.route("/playlists/<int:playlist_id>")
 def show_playlist(playlist_id):
     """Show detail on specific playlist."""
-    # Get the playlist object for the given playlist_id, or return a 404 error if it doesn't exist
-    playlist = Playlist.query.get_or_404(playlist_id)
-    # Get a list of all PlaylistSong objects with the given playlist_id
-    songs_in_playlist = PlaylistSong.query.filter_by(
-        playlist_id=playlist_id).all()
-    # Extract a list of song_ids from the PlaylistSong objects using a list comprehension
-    song_ids = [song.song_id for song in songs_in_playlist]
-    # Use the "in_" method of the "id" column of the Song table to retrieve all Song objects with ids in the song_ids list
-    songs = Song.query.filter(Song.id.in_(song_ids)).all()
+    # Get the playlist with the given ID or return a 404 error if not found
+    playlist = Playlist.query.filter_by(id=playlist_id).first_or_404()
 
-    # ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
+    # Join the Song table with the PlaylistSong table and filter by
+    # the playlist_id to get all songs in the playlist
+    songs = Song.query.join(PlaylistSong).filter(
+        PlaylistSong.playlist_id == playlist_id).all()
+
     return render_template("playlist.html", songs=songs, playlist=playlist)
 
 
@@ -62,7 +60,18 @@ def add_playlist():
     - if form not filled out or invalid: show form
     - if valid: add playlist to SQLA and redirect to list-of-playlists
     """
+    form = PlaylistForm()
 
+    if form.validate_on_submit():
+        name = form.name.data
+        description = form.description.data
+
+        playlist = Playlist(name=name, description=description)
+        db.session.add(playlist)
+        db.session.commit()
+        flash("Playlist added succesfully")
+        return redirect('/playlists')
+    return render_template("new_playlist.html", form=form)
     # ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
 
 
@@ -82,7 +91,15 @@ def show_all_songs():
 def show_song(song_id):
     """return a specific song"""
 
-    # ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
+    # Get the song with the given ID or return a 404 error if not found
+    song = Song.query.filter_by(id=song_id).first_or_404()
+
+    # Join the Playlist table with the PlaylistSong table and filter by
+    # the song_id to get all playlists associated with song
+    playlists = Playlist.query.join(PlaylistSong).filter(
+        PlaylistSong.song_id == song_id).all()
+
+    return render_template("song.html", playlists=playlists, song=song)
 
 
 @app.route("/songs/add", methods=["GET", "POST"])
@@ -92,6 +109,17 @@ def add_song():
     - if form not filled out or invalid: show form
     - if valid: add playlist to SQLA and redirect to list-of-songs
     """
+    form = SongForm()
+
+    if form.validate_on_submit():
+        title = form.title.data
+        artist = form.artist.data
+        song = Song(title=title, artist=artist)
+        db.session.add(song)
+        db.session.commit()
+        flash("Song added succesfully")
+        return redirect("/songs")
+    return render_template("new_song.html", form=form)
 
     # ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
 
@@ -100,21 +128,22 @@ def add_song():
 def add_song_to_playlist(playlist_id):
     """Add a playlist and redirect to list."""
 
-    # BONUS - ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
-
-    # THE SOLUTION TO THIS IS IN A HINT IN THE ASSESSMENT INSTRUCTIONS
-
     playlist = Playlist.query.get_or_404(playlist_id)
     form = NewSongForPlaylistForm()
 
-    # Restrict form to songs not already on this playlist
-
-    curr_on_playlist = ...
-    form.song.choices = ...
+    # query songs currently on playlist
+    curr_on_playlist = [song.id for song in playlist.songs]
+    # retreive all songs and filter out songs currently on playlist
+    form.song.choices = (db.session.query(Song.id, Song.title)
+                         .filter(Song.id.notin_(curr_on_playlist))
+                         .all())
 
     if form.validate_on_submit():
+        playlist_song = PlaylistSong(
+            song_id=form.song.data, playlist_id=playlist_id)
 
-        # ADD THE NECESSARY CODE HERE FOR THIS ROUTE TO WORK
+        db.session.add(playlist_song)
+        db.session.commit()
 
         return redirect(f"/playlists/{playlist_id}")
 

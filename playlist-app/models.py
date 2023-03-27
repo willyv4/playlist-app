@@ -7,43 +7,35 @@ db = SQLAlchemy()
 
 
 class Playlist(db.Model):
-    """Playlist."""
-
     __tablename__ = "playlists"
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text, nullable=False)
-
-    def __repr__(self):
-        return f"Playlist(id={self.id}, name={self.name}, desctiption={self.description})"
+    songs = db.relationship(
+        "Song", secondary="playlists_songs", backref="songs_in_playlist")
 
 
 class Song(db.Model):
-    """Song."""
-
     __tablename__ = "songs"
-
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text, nullable=False)
     artist = db.Column(db.Text, nullable=False)
-
-    def __repr__(self):
-        return f"Song(id={self.id}, title={self.title}, artist={self.artist})"
+    playlists = db.relationship(
+        "Playlist", secondary="playlists_songs", backref="playlist_with_song")
 
 
 class PlaylistSong(db.Model):
-    """Mapping of a playlist to a song."""
-
-    __tablename__ = "pl_songs"
-
+    __tablename__ = "playlists_songs"
     id = db.Column(db.Integer, primary_key=True)
-    playlist_id = db.Column(
-        db.Integer, db.ForeignKey("playlists.id"), nullable=False)
+    
+    playlist_id = db.Column(db.Integer, db.ForeignKey(
+        "playlists.id"), nullable=False)
+
     song_id = db.Column(db.Integer, db.ForeignKey("songs.id"), nullable=False)
 
-    def __repr__(self):
-        return f"PlaylistSong(id={self.id}, playlist_id={self.playlist_id}, song_id={self.song_id})"
+    playlists = db.relationship(
+        'Playlist', backref=db.backref("playlists_songs"))
+    songs = db.relationship('Song', backref=db.backref("playlists_songs"))
 
 
 # DO NOT MODIFY THIS FUNCTION

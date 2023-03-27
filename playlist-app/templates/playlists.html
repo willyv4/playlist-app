@@ -1,15 +1,21 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} {% block content %}
 
-{% block content %}
+<br />
+
+{% with messages = get_flashed_messages() %} {% if messages %}
+<div class="alert alert-success">
+  {% for message in messages %} {{ message }} {% endfor %}
+</div>
+{% endif %} {% endwith %}
 
 <h1>See all the playlists!</h1>
 
 <ul>
-{% for playlist in playlists %}
+  {% for playlist in playlists %}
   <li>
-     <a href="/playlists/{{ playlist.id }}">{{ playlist.name }}</a>
+    <a href="/playlists/{{ playlist.id }}">{{ playlist.name }}</a>
   </li>
-{% endfor %}
+  {% endfor %}
 </ul>
 
 <p><a class="btn btn-primary" href="/playlists/add">Add a playlist</a></p>
